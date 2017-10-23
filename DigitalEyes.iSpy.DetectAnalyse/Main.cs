@@ -95,16 +95,10 @@ namespace Plugins
         {
             try
             {
-                List<AnalysisReport> results;
-                lock (analysisResultLockObject)
-                {
-                    results = analysisResult;
-                }
-
                 // Clone image, so I can show a copy in the config window
                 var imageToAnalyse = new ImageToAnalyse { OriginalImage = (Bitmap)frame.Clone() };
 
-                int percentChange = processor.GetChangePercentageFromLast(imageToAnalyse, results);
+                int percentChange = processor.GetChangePercentageFromLast(imageToAnalyse);
                 double millsSinceLast = 0;
                 lock (lastAnalysisLockObject)
                 {
@@ -138,6 +132,14 @@ namespace Plugins
                         }
                     }
                 }
+
+                // Add image overlay stuff to the original image, before returning
+                List<AnalysisReport> results;
+                lock (analysisResultLockObject)
+                {
+                    results = analysisResult;
+                }
+                processor.AddImageOverlay(imageToAnalyse, results);
 
                 // If config window is open, show all the stages of image processing.
                 if (Plugins.Configure.ShowingConfig)

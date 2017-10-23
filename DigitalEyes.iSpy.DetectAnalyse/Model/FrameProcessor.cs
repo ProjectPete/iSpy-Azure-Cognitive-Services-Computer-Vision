@@ -31,7 +31,7 @@ namespace DigitalEyes.iSpy.DetectAnalyse.Model
             backgroundBrush = new SolidBrush(Color.FromArgb(80, 0, 0, 0));
         }
 
-        public int GetChangePercentageFromLast(ImageToAnalyse imageToAnalyse, List<AnalysisReport> analysis)
+        public int GetChangePercentageFromLast(ImageToAnalyse imageToAnalyse)
         {
             if (setWidth == 0)
             {
@@ -53,58 +53,6 @@ namespace DigitalEyes.iSpy.DetectAnalyse.Model
                 ConvertToGreyscaleAndComparePixelsWithLast(imageToAnalyse);
 
                 lastBmp = imageToAnalyse.PixelatedThumbnail; // Save now, to compare with next
-
-                // Picture in picture
-                if (showPixels)
-                {
-                    // Make enlarged pixel 'picture in picture'
-                    try
-                    {
-                        imageToAnalyse.ChangeThumbnail = ScaleUpThePixels(imageToAnalyse.ChangeThumbnail, 10);
-                        CopyRegionIntoImage(imageToAnalyse.ChangeThumbnail, new Rectangle(0, 0, imageToAnalyse.ChangeThumbnail.Width, imageToAnalyse.ChangeThumbnail.Height), ref imageToAnalyse.OriginalImage, new Rectangle(0, 0, imageToAnalyse.ChangeThumbnail.Width, imageToAnalyse.ChangeThumbnail.Height));
-                    }
-                    catch (Exception exc)
-                    {
-                        Logger.LogError(exc);
-                    }
-                }
-
-                // Add analysis results
-                if (analysis != null && analysis.Count > 0)
-                {
-                    var y = 30; // Starting Y pos
-
-                    using (Graphics g = Graphics.FromImage(imageToAnalyse.OriginalImage))
-                    {
-                        string separator = $"{Environment.NewLine}";
-
-                        try
-                        {
-                            foreach (AnalysisReport result in analysis)
-                            {
-                                g.DrawImage(result.AnalysedImageThumb, new Rectangle(0, y, result.AnalysedImageThumb.Width, result.AnalysedImageThumb.Height), new Rectangle(0, 0, result.AnalysedImageThumb.Width, result.AnalysedImageThumb.Height), GraphicsUnit.Pixel);
-
-                                foreach (var row in result.Reports)
-                                {
-                                    var x = result.AnalysedImageThumb.Width + 10;
-                                    var size = g.MeasureString(row, font);
-                                    var rect = new RectangleF(x, y, size.Width, size.Height);
-                                    g.FillRectangle(backgroundBrush, rect);
-                                    g.DrawString(row, new Font("Verdana", fontSize), new SolidBrush(Color.White), x, y);
-
-                                    y += 10;
-                                }
-
-                                y += 4;
-                            }
-                        }
-                        catch (Exception exc)
-                        {
-                            Logger.LogError(exc);
-                            // ignore for now, probably too many rows?
-                        }
-                    }
-                }
             }
             else
             {
@@ -114,6 +62,61 @@ namespace DigitalEyes.iSpy.DetectAnalyse.Model
             double pc = (imageToAnalyse.ChangedPixels / totalPixels) * 100;
 
             return Convert.ToInt32(Math.Round(pc, 0));
+        }
+
+        internal void AddImageOverlay(ImageToAnalyse imageToAnalyse, List<AnalysisReport> analysis)
+        {
+            // Picture in picture
+            if (showPixels)
+            {
+                // Make enlarged pixel 'picture in picture'
+                try
+                {
+                    imageToAnalyse.ChangeThumbnail = ScaleUpThePixels(imageToAnalyse.ChangeThumbnail, 10);
+                    CopyRegionIntoImage(imageToAnalyse.ChangeThumbnail, new Rectangle(0, 0, imageToAnalyse.ChangeThumbnail.Width, imageToAnalyse.ChangeThumbnail.Height), ref imageToAnalyse.OriginalImage, new Rectangle(0, 0, imageToAnalyse.ChangeThumbnail.Width, imageToAnalyse.ChangeThumbnail.Height));
+                }
+                catch (Exception exc)
+                {
+                    Logger.LogError(exc);
+                }
+            }
+
+            // Add analysis results
+            if (analysis != null && analysis.Count > 0)
+            {
+                var y = 30; // Starting Y pos
+
+                using (Graphics g = Graphics.FromImage(imageToAnalyse.OriginalImage))
+                {
+                    string separator = $"{Environment.NewLine}";
+
+                    try
+                    {
+                        foreach (AnalysisReport result in analysis)
+                        {
+                            g.DrawImage(result.AnalysedImageThumb, new Rectangle(0, y, result.AnalysedImageThumb.Width, result.AnalysedImageThumb.Height), new Rectangle(0, 0, result.AnalysedImageThumb.Width, result.AnalysedImageThumb.Height), GraphicsUnit.Pixel);
+
+                            foreach (var row in result.Reports)
+                            {
+                                var x = result.AnalysedImageThumb.Width + 10;
+                                var size = g.MeasureString(row, font);
+                                var rect = new RectangleF(x, y, size.Width, size.Height);
+                                g.FillRectangle(backgroundBrush, rect);
+                                g.DrawString(row, new Font("Verdana", fontSize), new SolidBrush(Color.White), x, y);
+
+                                y += 10;
+                            }
+
+                            y += 4;
+                        }
+                    }
+                    catch (Exception exc)
+                    {
+                        Logger.LogError(exc);
+                        // ignore for now, probably too many rows?
+                    }
+                }
+            }
         }
 
         private void ConvertToGreyscaleAndComparePixelsWithLast(ImageToAnalyse imageToAnalyse)
